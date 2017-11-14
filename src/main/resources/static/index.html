@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Hobby Journal</title>
+    <style>
+        #main {
+            margin: 0;
+            padding-top: 30px;
+            width: 100%;
+        }
+
+        .panel {
+            margin-right: 5px;
+            margin-left: 15px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div id='main'></div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.3.2/react.min.js"></script>
+<script src="https://fb.me/react-dom-15.0.1.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.24/browser.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"/>
+
+
+<script type="text/babel">
+
+    class App extends React.Component {
+        constructor(props) {
+            super(props);
+            this.createHobby = this.createHobby.bind(this);
+            this.deleteHobby = this.deleteHobby.bind(this);
+            this.handleSubmit = this.handleSubmit.bind(this);
+            this.handleEditSubmit = this.handleEditSubmit.bind(this);
+            this.handleChange = this.handleChange.bind(this);
+            this.onChangeHobby = this.onChangeHobby.bind(this);
+            this.onChangeDate = this.onChangeDate.bind(this);
+            this.onChangeTime = this.onChangeTime.bind(this);
+            this.onChangeDesc = this.onChangeDesc.bind(this);
+            this.editHobby = this.editHobby.bind(this);
+
+            this.state = {
+
+                hobbies: [],
+                hobby: '',
+                date: '',
+                time: '',
+                desc: '',
+                editHobby: false,
+                editHobbyId: '',
+                href: ''
+            };
+
+        }
+
+        componentDidMount() {
+            this.loadHobbiesFromServer()
+        }
+
+        loadHobbiesFromServer() {
+            fetch('http://proto361.haaga-helia.fi:8080/hobbyjournal/api/hobbies')
+                .then((response) => response.json())
+                .then((data) => {
+                    this.setState({
+                        hobbies: data._embedded.hobbies
+                    });
+                });
+        }
+
+        createHobby(hobby) {
+            fetch('http://proto361.haaga-helia.fi:8080/hobbyjournal/api/hobbies', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(hobby)
+            })
+                .then(
+                    res => this.loadHobbiesFromServer()
+                )
+                .catch(err => console.error(err))
+
+        }
+
+        handleEditSubmit(hobby) {
+            hobby.preventDefault();
+            fetch(this.state.href, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    hobby: this.state.hobby,
+                    date: this.state.date,
+                    time: this.state.time,
+                    desc: this.state.desc
+                })
+            }).then(
+                res => this.loadHobbiesFromServer()
+            )
+                .catch(err => console.error(err))
+            this.setState({editHobby: false});
+            this.refs.hobbyInput.value='';
+            this.refs.dateInput.value='';
+            this.refs.timeInput.value='';
+            this.refs.descInput.value='';
+        }
+
+        deleteHobby(hobby) {
+            console.log(hobby);
+            fetch(hobby._links.self.href, {method: 'DELETE'})
+                .then(res => this.loadHobbiesFromServer())
+                .catch(err => console.error(err))
+        }
+
+        handleChange(event) {
+            this.setState({
+                [event.target.name]: event.target.value
+            })
+        }
+
+        onChangeHobby(e) {
+            this.setState({hobby: e.target.value});
+        }
+
+        onChangeDate(e) {
+            this.setState({date: e.target.value});
+        }
+
+        onChangeTime(e) {
+            this.setState({time: e.target.value});
+        }
+
+        onChangeDesc(e) {
+            this.setState({desc: e.target.value});
+        }
+
+        handleSubmit(event) {
+            event.preventDefault();
+            var newHobby = {
+                hobby: this.state.hobby,
+                date: this.state.date,
+                time: this.state.time,
+                desc: this.state.desc,
+            };
+            this.createHobby(newHobby);
+
+            this.refs.hobbyInput.value='';
+            this.refs.dateInput.value='';
+            this.refs.timeInput.value='';
+            this.refs.descInput.value='';
+
+        }
+
+        editHobby(hobby) {
+            this.setState({
+                editHobby: true,
+                hobby: hobby.hobby,
+                date: hobby.date,
+                time: hobby.time,
+                desc: hobby.desc,
+                href: hobby._links.self.href
+            })
+
+        }
+
+        render() {
+            return (
+                    <div>
+                        <div className="panel panel-default col-md-3">
+                            <div className="panel-heading">Create hobby</div>
+                            <div className="panel-body">
+                                {!this.state.editHobby ?
+                                        <form onSubmit={this.handleSubmit}>
+                                            <div className="form-group row">
+                                                <div>
+                                                    <input type="text" placeholder="Hobby" ref="hobbyInput" className="form-control"
+                                                           name="hobby" onChange={this.handleChange}/>
+                                                </div>
+                                            </div>
+                                            <div className="form-group row">
+                                                <div>
+                                                    <input type="date" placeholder="Date" ref="dateInput" className="form-control"
+                                                           name="date" onChange={this.handleChange}/>
+                                                </div>
+                                            </div>
+                                            <div className="form-group row">
+                                                <div>
+                                                    <input type="text" placeholder="Time" ref="timeInput" className="form-control"
+                                                           name="time" onChange={this.handleChange}/>
+                                                </div>
+                                            </div>
+                                            <div className="form-group row">
+                                                <div>
+                                                    <textarea rows="3" placeholder="Description"
+                                                              className="form-control" ref="descInput" name="desc"
+                                                              onChange={this.handleChange}/>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <button className="btn btn-success" onClick={this.handleSubmit}>Save
+                                                </button>
+                                            </div>
+                                        </form>
+                                    :
+                                        <form onSubmit={this.handleEditSubmit}>
+                                            <div className="form-group row">
+                                                <div>
+                                                    <input type="text" ref="hobbyInput"
+                                                           className="form-control"
+                                                           value={this.state.hobby}
+                                                           onChange={this.onChangeHobby}/>
+                                                </div>
+                                            </div>
+                                            <div className="form-group row">
+                                                <div>
+                                                    <input type="text" placeholder="Date"
+                                                           ref="dateInput"
+                                                           className="form-control"
+                                                           value={this.state.date}
+                                                           onChange={this.onChangeDate}/>
+                                                </div>
+                                            </div>
+                                            <div className="form-group row">
+                                                <div>
+                                                    <input type="text" placeholder="Time"
+                                                           ref="timeInput"
+                                                           className="form-control"
+                                                           value={this.state.time}
+                                                           onChange={this.onChangeTime}/>
+                                                </div>
+                                            </div>
+                                            <div className="form-group row">
+                                                <div>
+                                                    <textarea rows="3" placeholder="Description"
+                                                              ref="descInput"
+                                                              className="form-control" value={this.state.desc}
+                                                              onChange={this.onChangeDesc}/>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <button className="btn btn-success"
+                                                        onClick={this.handleEditSubmit}>Edit
+                                                </button>
+                                            </div>
+                                        </form>
+                                }
+                            </div>
+                        </div>
+
+                        <HobbyList
+                                deleteHobby={this.deleteHobby}
+                                hobbies={this.state.hobbies}
+                                editHobby={this.editHobby}/>
+                    </div>
+            );
+        }
+    }
+
+    class HobbyList extends React.Component {
+        constructor(props) {
+            super(props);
+            this.state = {
+                search: ''
+            }
+        }
+
+        updateSearch(event) {
+            this.setState({search: event.target.value});
+        }
+
+        render() {
+            let filteredHobbies = this.props.hobbies.filter(
+                (hobby) => {
+                    return hobby.date.indexOf(this.state.search) !== -1;
+                }
+            );
+
+            return (
+                    <div id="hobbytable" className="col-md-8">
+
+                        <input type="text"
+                               className="col-md-4 form-control"
+                               value={this.state.search}
+                               placeholder="Filter with date"
+                               onChange={this.updateSearch.bind(this)}
+                        />
+
+
+                        <table className="table table-bordered">
+                            <thead>
+                            <tr>
+                                <th>Hobby</th>
+                                <th>Date (MM/DD/YYYY)</th>
+                                <th>Time</th>
+                                <th>Description</th>
+                                <th>Delete/Modify</th>
+                            </tr>
+                            </thead>
+                            <tbody>{filteredHobbies.map(hobby => <Hobby
+                                    key={hobby._links.self.href}
+                                    deleteHobby={this.props.deleteHobby}
+                                    editHobby={this.props.editHobby}
+                                    hobby={hobby}/>)}</tbody>
+                        </table>
+                    </div>
+
+            );
+        }
+    }
+
+    class Hobby extends React.Component {
+        constructor(props) {
+            super(props);
+            this.deleteHobby = this.deleteHobby.bind(this);
+            this.editHobby = this.editHobby.bind(this);
+        }
+
+        deleteHobby() {
+            this.props.deleteHobby(this.props.hobby);
+        }
+
+        editHobby() {
+            this.props.editHobby(this.props.hobby);
+        }
+
+
+        render() {
+            return (
+                    <tr>
+                        <td>{this.props.hobby.hobby}</td>
+                        <td>{this.props.hobby.date}</td>
+                        <td>{this.props.hobby.time}</td>
+                        <td>{this.props.hobby.desc}</td>
+                        <td>
+                            <button className="btn btn-danger" onClick={this.deleteHobby}>Delete</button>
+                            <button className="btn btn-info" onClick={this.editHobby}>Modify</button>
+                        </td>
+
+
+                    </tr>
+            );
+        }
+    }
+
+    ReactDOM.render(
+            <App/>,
+        document.getElementById('main')
+    );
+</script>
+
+</body>
+</html>
